@@ -13,7 +13,7 @@ import { toast } from 'vue-sonner';
 const {props} = usePage();
 const producto = props.producto as Producto;
 
-const breadcrumbs: BreadcrumbItem[] = [{title: 'Paletas', href: '/productos'}, {title: 'Editar', href: '#'}];
+const breadcrumbs: BreadcrumbItem[] = [{title: 'Productos', href: '/productos'}, {title: 'Editar', href: '#'}];
 
 const previewUrl = ref<string | null>(null);
 
@@ -27,12 +27,13 @@ const handleImageChange = (e: Event) => {
 
 //Formulario
 
-const form = reactive<Partial<{nombre: string; descripcion: string; precio: number; imagen: File | null; activo: boolean;}>>({
+const form = reactive<Partial<{nombre: string; descripcion: string; precio: number; imagen: File | null; activo: boolean; instock: boolean;}>>({
     nombre: '',
     descripcion: '',
     precio: undefined,
     imagen: null,
     activo: true,
+    instock: false
 
 })
 
@@ -42,6 +43,7 @@ onMounted(() => {
     form.precio = Number(producto.precio);
     //form.imagen = producto.imagen ?? 'NA';
     form.activo = Boolean(producto.activo);
+    form.instock = Boolean(producto.instock);
     if (producto.imagen) {
     previewUrl.value = `/storage/${producto.imagen}`; // Ajusta si la ruta es diferente
   }
@@ -63,6 +65,7 @@ const submit = () => {
     formData.append('descripcion', form.descripcion || '');
     formData.append('precio', String(form.precio || ''));
     formData.append('activo', form.activo ? '1' : '0');
+    formData.append('instock', form.instock ? '1' : '0');
 
 
     if (form.imagen instanceof File) {
@@ -132,6 +135,15 @@ const submit = () => {
                             id="activo"
                             type="checkbox"
                             v-model="form.activo"
+                            class="w-5 h-5"
+                        />
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label for="instock">Disponible para entrega?</label>
+                        <input
+                            id="instock"
+                            type="checkbox"
+                            v-model="form.instock"
                             class="w-5 h-5"
                         />
                     </div>

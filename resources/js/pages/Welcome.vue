@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import { Producto } from '@/types';
 import { watch } from 'vue';
+import { PlaneTakeoff } from 'lucide-vue-next';
 
 
 
@@ -179,6 +180,10 @@ function enviarPedido(): void {
     direccion.value = '';
     telefonoCliente.value = '';
     metodoPago.value = 'efectivo';
+
+    window.location.reload()
+
+
   }
 }
 
@@ -215,8 +220,11 @@ onMounted(() => {
                 <img v-if="producto.imagen" :src="`storage/${producto.imagen}`" :alt="producto.nombre" class="relative h-24 z-10 object-contai">
                 <img v-else src="/logo/base.png" alt="General" class="relative h-24 z-10 object-contai"/>
             </div>
-            <h3 class="text-lg font-semibold mb-2 text-gray-800 dark:text-gray-200">{{ producto.nombre }}</h3>
-            <p class="text-sm mb-2 text-gray-600 dark:text-gray-100">{{ producto.descripcion }}</p>
+            <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <h3 class="text-lg font-semibold mb-2 text-gray-800 dark:text-gray-200">{{ producto.nombre }}</h3>
+                <span v-if="producto.instock" class="inline-flex items-center gap-1 rounded-md bg-blue-700/20 px-2 py-0.5 text-sm font-medium text-blue-500">  <PlaneTakeoff /> Entrega Inmediata</span>
+            </div>
+            <p class="text-sm mb-2 py-2 text-gray-600 dark:text-gray-100">{{ producto.descripcion }}</p>
             <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">${{ producto.precio }}</p>
             <!-- <button
               @click="agregarAlCarrito(producto.id)"

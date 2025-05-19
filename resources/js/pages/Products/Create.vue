@@ -10,7 +10,7 @@ import { type BreadcrumbItem } from '@/types';
 import { Toaster } from 'vue-sonner';
 import { toast } from 'vue-sonner';
 
-const breadcrumbs: BreadcrumbItem[] = [{title: 'Paletas', href: '/productos'}, {title: 'Crear', href: '#'}];
+const breadcrumbs: BreadcrumbItem[] = [{title: 'Productos', href: '/productos'}, {title: 'Crear', href: '#'}];
 
 //Formulario
 

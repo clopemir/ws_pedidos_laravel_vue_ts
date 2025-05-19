@@ -14,7 +14,7 @@ class ProductoController extends Controller
      */
     public function home()
     {
-        $productos = Producto::where('activo', true)->paginate(4);
+        $productos = Producto::where('activo', true)->paginate(8);
 
         return Inertia::render('Welcome', [
             'productos' => $productos
@@ -24,9 +24,9 @@ class ProductoController extends Controller
 
      public function index()
     {
-        $productos = Producto::all();
+        $productos = Producto::get(); //paginate(10);
 
-        return Inertia::render('Paletas/Index', [
+        return Inertia::render('Products/Index', [
             'productos' => $productos
         ]);
     }
@@ -36,7 +36,7 @@ class ProductoController extends Controller
      */
     public function create()
     {
-        return Inertia::render('Paletas/Create');
+        return Inertia::render('Products/Create');
     }
 
     /**
@@ -68,7 +68,7 @@ class ProductoController extends Controller
      */
     public function edit(Producto $producto)
     {
-        return Inertia::render('Paletas/Edit', [
+        return Inertia::render('Products/Edit', [
             'producto' => $producto
         ]);
     }
@@ -81,13 +81,17 @@ class ProductoController extends Controller
         $request->merge([
             'activo' => filter_var($request->input('activo', false), FILTER_VALIDATE_BOOLEAN),
         ]);
+        $request->merge([
+            'instock' => filter_var($request->input('instock', true), FILTER_VALIDATE_BOOLEAN),
+        ]);
 
         $validated = $request->validate([
             'nombre'=> 'required|string|max:150',
             'descripcion' => 'required|string|max:255',
             'precio' => 'required|numeric',
             'imagen' => 'nullable|image|max:10240',
-            'activo' => 'required|boolean'
+            'activo' => 'required|boolean',
+            'instock' => 'required|boolean'
         ]);
 
 
@@ -116,7 +120,7 @@ class ProductoController extends Controller
     {
         $producto->delete();
 
-        return Inertia::render('Paletas/Index', [
+        return Inertia::render('Products/Index', [
             'productos' => Producto::all()
         ]);
     }

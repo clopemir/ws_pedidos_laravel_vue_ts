@@ -11,12 +11,14 @@ class Producto extends Model
         'descripcion',
         'precio',
         'imagen',
-        'activo'
+        'activo',
+        'instock'
     ];
 
     // Opcional: Casting para el precio
     protected $casts = [
         'precio' => 'decimal:2',
-        'activo' => 'boolean'
+        'activo' => 'boolean',
+        'instock' =>  'boolean'
     ];
 }
