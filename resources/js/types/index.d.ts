@@ -46,4 +46,5 @@ export interface Producto {
     precio: number;
     imagen: any | null;
     activo: boolean;
+    instock: boolean;
 }
