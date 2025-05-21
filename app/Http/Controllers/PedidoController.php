@@ -12,12 +12,12 @@ use Illuminate\Support\Facades\Log;
 class PedidoController extends Controller
 {
     public function index() {
-        $pedidos = Pedido::with(['pedidoProducto.producto' => function ($query) {
+        $pedidos = Pedido::with(['pedidoProductos.producto' => function ($query) {
             $query->select('id', 'nombre');
         }])
-        ->orderBy('created_at', 'desc')
-        ->paginate(10);
-
+        ->orderBy('created_at', 'desc')->get();
+        //->paginate(10);
+        dd($pedidos);
         return Inertia::render('Pedidos/Index', [
             'pedidos' => $pedidos,
         ]);
@@ -70,18 +70,21 @@ class PedidoController extends Controller
 
             DB::commit(); // Confirmar la transacción
 
-            return response()->json([
-                'message' => 'Pedido creado exitosamente.',
-                'pedido_id' => $pedido->id,
-            ], 201);
+            return redirect()->back();
+            // return response()->json([
+            //     'message' => 'Pedido creado exitosamente.',
+            //     'pedido_id' => $pedido->id,
+            // ], 201);
 
         } catch (\Throwable $e) {
             DB::rollBack(); // Revertir la transacción en caso de error
             Log::error("Error al crear pedido: " . $e->getMessage()); // Loguear el error
-            return response()->json([
-                'message' => 'Error al crear el pedido.',
-                'error' => $e->getMessage(),
-            ], 500);
+
+            return redirect()->back();
+            // return response()->json([
+            //     'message' => 'Error al crear el pedido.',
+            //     'error' => $e->getMessage(),
+            // ], 500);
         }
     }
 
@@ -102,6 +105,8 @@ class PedidoController extends Controller
             return response()->json(['message' => 'No hay datos de productos pedidos para mostrar.'], 200);
         }
 
-        return response()->json($reporte);
+        //return response()->json($reporte);
+        dd($reporte);
+        return $reporte;
     }
 }
