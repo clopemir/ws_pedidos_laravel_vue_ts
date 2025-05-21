@@ -1,8 +1,30 @@
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
+import { Producto } from '@/types';
 import { watch } from 'vue';
 import { PlaneTakeoff } from 'lucide-vue-next';
+
+
+
+interface CarritoItem extends Producto {
+    cantidad: number;
+}
+
+interface Props {
+    //productos: Producto[];
+    productos: {
+    data: Producto[],
+    current_page: number,
+    last_page: number,
+    links: {
+      url: string | null,
+      label: string,
+      active: boolean
+    }[]
+  };
+}
+
 
 const colores = [
   '#BAE6FF',
@@ -13,55 +35,42 @@ const colores = [
   '#F1C21B'
 ];
 
-const props = defineProps({
-    productos: {
-        type: Object,
-        required: true
-    }
-});
+const props = defineProps<Props>();
 
 
 const number = '5214626016703'
 const tienda = 'Helados Franco'
 
-const carrito = ref([]);
-const productosDisponibles = ref([...props.productos.data]);
-const currentYear = ref(new Date().getFullYear())
+const carrito = ref<CarritoItem[]>([]);
+const productosDisponibles = ref<Producto[]>([...props.productos.data]);
+const currentYear = ref<number>(new Date().getFullYear())
 
-const nombre = ref('');
-const direccion = ref('');
-const telefonoCliente = ref('');
-const metodoPago = ref('efectivo')
+const nombre = ref<string>('');
+const direccion = ref<string>('');
+const telefonoCliente = ref<string>('');
+const metodoPago = ref<string>('')
 
-const notificacion = ref('');
-const mostrarNotificacion = ref(false);
+const notificacion = ref<string>('');
+const mostrarNotificacion = ref<boolean>(false);
 
-const isLoading = ref(false);
-
-function cambiarPagina(url) {
+function cambiarPagina(url: string) {
   if (url) {
     router.visit(url, { preserveScroll: true });
   }
 }
 
-const carritoTotal = computed(() => {
+const carritoTotal = computed<string>(() => {
     const total = carrito.value.reduce((sum, item) => sum + item.precio * item.cantidad, 0);
-    return total.toFixed(2);
+    return total;
 });
 
-function agregarAlCarrito(productoId) {
+function agregarAlCarrito(productoId: number): void {
   const producto = productosDisponibles.value.find(p => p.id === productoId);
   if (!producto) return
 
   const item = carrito.value.find(p => p.id === productoId)
   if (item) {
-    if (item.cantidad < 10) {
-
-        item.cantidad++
-    } else {
-        mostrarMensaje(`Ya tienes el máximo de "${producto.nombre}" en el carrito.`);
-        return;
-    }
+    item.cantidad++
   } else {
     carrito.value.push({ ...producto, cantidad: 1 })
   }
@@ -70,14 +79,14 @@ function agregarAlCarrito(productoId) {
   mostrarMensaje(`"${producto.nombre}" agregado al carrito.`)
 }
 
-function quitarDelCarrito(productoId) {
+function quitarDelCarrito(productoId: number): void {
   const producto = carrito.value.find(p => p.id === productoId)
   carrito.value = carrito.value.filter(p => p.id !== productoId)
   guardarCarrito()
   if (producto) mostrarMensaje(`"${producto.nombre}" eliminado del carrito.`)
 }
 
-function actualizarCantidad(productoId, cantidad) {
+function actualizarCantidad(productoId: number, cantidad: number): void {
     const item = carrito.value.find(p => p.id === productoId)
 //   const nuevaCantidad = parseInt(cantidad)
     if (!item) return;
@@ -89,60 +98,57 @@ function actualizarCantidad(productoId, cantidad) {
         quitarDelCarrito(productoId)
         return
     }
-    if (nuevaCantidad > 10) {
-        mostrarMensaje('Solo se permiten 10 unidades por producto en el carrito');
-        return;
-    }
 
     item.cantidad = nuevaCantidad
     guardarCarrito()
 }
 
-function guardarCarrito() {
+function guardarCarrito(): void {
   localStorage.setItem('carritoHF', JSON.stringify(carrito.value))
 }
 
-function eliminarCarrito() {
+function eliminarCarrito(): void {
   localStorage.removeItem('carritoHF');
 }
 
-function cargarCarrito() {
+function cargarCarrito():void {
   const guardado = localStorage.getItem('carritoHF')
   if (guardado) {
     try {
-      const data = JSON.parse(guardado);
-
-      if (Array.isArray(data)) {
-        carrito.value = data;
-      } else {
-        carrito.value = [];
-        eliminarCarrito();
-      }
-
+      const data = JSON.parse(guardado) as CarritoItem[];
+      carrito.value = data;
     } catch {
       carrito.value = [];
-      eliminarCarrito();
     }
   }
 }
 
-function estaAlLimite(productoId) {
+function estaAlLimite(productoId: number): boolean {
   const item = carrito.value.find(p => p.id === productoId);
   return item?.cantidad >= 10;
 }
 
-function mostrarMensaje(msg) {
+function mostrarMensaje(msg: string): void {
   notificacion.value = msg
   mostrarNotificacion.value = true
   setTimeout(() => mostrarNotificacion.value = false, 3000)
 }
 
 
-function cerrarNotificacionModal() {
+function cerrarNotificacionModal(): void {
   mostrarNotificacion.value = false;
 }
 
-function generarMensajeWhatsApp(){
+function generarMensajeWhatsApp(): string | null {
+  if (carrito.value.length === 0) {
+    mostrarMensaje("Tu carrito está vacío. Agrega productos antes de enviar el pedido.")
+    return null;
+  }
+
+  if (!nombre.value.trim() || !direccion.value.trim()) {
+    mostrarMensaje("Por favor, completa tu Nombre y Dirección.")
+    return null;
+  }
 
   let mensaje = `¡Hola ${tienda}! 👋 Me gustaría hacer el siguiente pedido:\n\n`
   mensaje += "🍦 *PRODUCTOS:*\n"
@@ -162,70 +168,23 @@ function generarMensajeWhatsApp(){
   return mensaje
 }
 
-async function enviarPedido() {
+function enviarPedido(): void {
+  const msg = generarMensajeWhatsApp()
+  if (msg) {
+    const msgenc = encodeURIComponent(msg)
+    const url = `https://wa.me/${number}?text=${msgenc}`
+    window.open(url, '_blank')
 
-    if (carrito.value.length === 0) {
-        mostrarMensaje("Tu carrito está vacío. Agrega productos antes de enviar el pedido.")
-        return;
-    }
+    eliminarCarrito();
+    nombre.value = '';
+    direccion.value = '';
+    telefonoCliente.value = '';
+    metodoPago.value = 'efectivo';
 
-    if (!nombre.value.trim() || !direccion.value.trim()) {
-        mostrarMensaje("Por favor, completa tu Nombre y Dirección.")
-        return;
-    }
-
-    isLoading.value = true;
+    window.location.reload()
 
 
-    const payload = {
-        nombre_cliente: nombre.value,
-        direccion: direccion.value,
-        telefono: telefonoCliente.value || '', // Enviar string vacío si no hay teléfono
-        m_pago: metodoPago.value,
-        productos: carrito.value.map(item => ({
-        producto_id: item.id,
-        cantidad: item.cantidad,
-        precio_unitario: item.precio // 'precio' en el carrito es el precio unitario
-        }))
-    };
-
-    router.post('/pedidos', payload, {
-        onSuccess: (page) => {
-            mostrarMensaje('El pedido se ha guardado correctamente, preparando envio por WhatsApp...');
-
-            const msg = generarMensajeWhatsApp()
-            if (msg) {
-                const msgenc = encodeURIComponent(msg)
-                const url = `https://wa.me/${number}?text=${msgenc}`
-                window.open(url, '_blank')
-            }
-
-            eliminarCarrito();
-            carrito.value = [];
-            nombre.value = '';
-            direccion.value = '';
-            telefonoCliente.value = '';
-            metodoPago.value = 'efectivo';
-            router.reload({preserveScroll: true});
-
-            mostrarMensaje('Pedido enviado y Guardado')
-        },
-        onError: (errors) => {
-            console.error("Error al guardar pedido:", errors);
-            let errorMessage = "Error al guardar el pedido. ";
-            const errorKeys = Object.keys(errors);
-            if (errorKeys.length > 0) {
-                // Concatenar errores de validación de Laravel
-                errorMessage += errorKeys.map(key => (Array.isArray(errors[key]) ? errors[key].join(', ') : errors[key])).join(' ');
-            } else {
-                errorMessage += "Por favor, inténtalo de nuevo.";
-            }
-            mostrarMensaje(errorMessage);
-        },
-        onFinish: () => {
-            isLoading.value = false; // Termina la carga independientemente del resultado
-        }
-    });
+  }
 }
 
 watch(() => props.productos.data, (nuevosProductos) => {
@@ -234,9 +193,6 @@ watch(() => props.productos.data, (nuevosProductos) => {
 
 onMounted(() => {
   cargarCarrito()
-  if (props.productos.data) {
-        productosDisponibles.value = [...props.productos.data];
-    }
 })
 </script>
 
@@ -279,7 +235,7 @@ onMounted(() => {
                 :disabled="estaAlLimite(producto.id)"
                 :class="[
                     'mt-auto py-2 px-4 rounded-xl transition duration-300 ease-in-out transform',
-                    estaAlLimite(producto.id) || isLoading
+                    estaAlLimite(producto.id)
                     ? 'bg-gray-400 cursor-not-allowed text-white'
                     : 'bg-pink-500 hover:bg-pink-600 text-white hover:scale-105 focus:outline-none focus:ring-2 focus:ring-pink-400 dark:bg-pink-700 dark:hover:bg-pink-800'
                 ]"
@@ -293,13 +249,12 @@ onMounted(() => {
               v-for="link in props.productos.links"
               :key="link.label"
               v-html="link.label"
-              :disabled="!link.url || isLoading"
-              @click="cambiarPagina(link.url)"
+              :disabled="!link.url"
+              @click="cambiarPagina(link.url!)"
               class="px-3 py-1 border rounded"
               :class="{
               'bg-pink-500 text-white': link.active,
-              'text-gray-500 cursor-not-allowed': !link.url || isLoading,
-              'hover:bg-pink-100 dark:hover:bg-gray-700': link.url && !link.active && !isLoading
+              'text-gray-500 cursor-not-allowed': !link.url,
               }"
           />
         </div>
@@ -327,7 +282,7 @@ onMounted(() => {
                 <div>
                     <h3 class="font-medium text-gray-800 dark:text-gray-200">{{ item.nombre }}</h3>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Precio: ${{ item.precio }}</p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Subtotal: ${{ (item.precio * item.cantidad).toFixed(2) }}</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Subtotal: ${{ (item.precio * item.cantidad) }}</p>
                 </div>
             </div>
             <div class="flex items-center gap-2">
@@ -347,7 +302,7 @@ onMounted(() => {
 
       <section class="mb-10">
         <h2 class="text-2xl sm:text-3xl font-semibold mb-4 text-gray-700 dark:text-gray-300">📋 Tus datos</h2>
-        <form @submit.prevent="enviarPedido" class="space-y-6 max-w-xl mx-auto">
+        <form class="space-y-6 max-w-xl mx-auto">
           <div>
             <label for="nombre" class="block font-medium text-gray-700 dark:text-gray-300">Nombre *</label>
             <input
@@ -356,7 +311,6 @@ onMounted(() => {
               type="text"
               class="mt-1 w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-400 dark:focus:ring-pink-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 transition-colors duration-300"
               required
-              :disabled="isLoading"
             />
           </div>
           <div>
@@ -366,7 +320,6 @@ onMounted(() => {
               id="direccion"
               class="mt-1 w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-pink-400 dark:focus:ring-pink-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 transition-colors duration-300"
               required
-              :disabled="isLoading"
             ></textarea>
           </div>
           <div>
@@ -376,7 +329,6 @@ onMounted(() => {
               id="telefono"
               type="text"
               class="mt-1 w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-400 dark:focus:ring-pink-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 transition-colors duration-300"
-              :disabled="isLoading"
             />
           </div>
 
@@ -390,7 +342,6 @@ onMounted(() => {
                             value="efectivo"
                             class="form-radio text-pink-600 focus:ring-pink-400 dark:text-pink-400 dark:focus:ring-pink-600"
                             required
-                            :disabled="isLoading"
                         />
                         <span class="ml-2 text-gray-800 dark:text-gray-200">Efectivo</span>
                     </label>
@@ -401,24 +352,22 @@ onMounted(() => {
                             value="transferencia"
                             class="form-radio text-pink-600 focus:ring-pink-400 dark:text-pink-400 dark:focus:ring-pink-600"
                             required
-                            :disabled="isLoading"
                         />
                         <span class="ml-2 text-gray-800 dark:text-gray-200">Transferencia</span>
                     </label>
                 </div>
             </div>
-            <div class="text-center mt-8">
-                <button
-                    type="submit"
-                    :disabled="isLoading"
-                    class="bg-green-500 hover:bg-green-600 text-white text-lg font-semibold px-6 py-3 rounded-2xl transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-400 dark:bg-green-700 dark:hover:bg-green-800"
-                >
-                 <span v-if="isLoading">Enviando Pedido...</span>
-                 <span v-else>📤 Enviar pedido por WhatsApp</span>
-                </button>
-            </div>
         </form>
       </section>
+
+      <div class="text-center mt-8">
+        <button
+          @click="enviarPedido"
+          class="bg-green-500 hover:bg-green-600 text-white text-lg font-semibold px-6 py-3 rounded-2xl transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-400 dark:bg-green-700 dark:hover:bg-green-800"
+        >
+          📤 Enviar pedido por WhatsApp
+        </button>
+      </div>
 
       <transition name="fade">
         <div

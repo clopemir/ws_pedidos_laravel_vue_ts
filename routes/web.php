@@ -11,12 +11,14 @@ Route::get('dashboard', function () {
     return Inertia::render('Dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
+Route::post('pedidos', [PedidoController::class, 'store'])->name('pedidos.store');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('productos', ProductoController::class)->except('show');
 
     Route::get('pedidos', [PedidoController::class, 'index'])->name('pedidos.index');
     Route::get('pedidos/reportes', [PedidoController::class, 'reporteCantidades'])->name('pedidos.reporte');
-    Route::post('pedidos', [PedidoController::class, 'store'])->name('pedidos.store');
+
 });
 
 
